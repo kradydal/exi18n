@@ -23,6 +23,12 @@ defmodule ExI18n.Cache do
     {:reply, translations, state}
   end
 
+  @doc false
+  def handle_call({:refresh, locale, translations}, _from, state) do
+    cache_translations({:ok, translations}, locale)
+    {:reply, translations, state}
+  end
+
   defp get_translations(locale) do
     case :ets.lookup(@table, locale) do
       [{_, translations} | _] -> translations
@@ -64,6 +70,21 @@ defmodule ExI18n.Cache do
 
       translations ->
         translations
+    end
+  end
+
+  @spec refresh(String.t(), map()) :: map() | none
+  def refresh(locale, translations) do
+    case GenServer.call(__MODULE__, {:refresh, locale, translations}) do
+      {:error, {locale, error}} ->
+        raise ArgumentError,
+              inspect("""
+              Locale: #{locale}
+              Error: #{inspect(error)}
+              """)
+
+      _translations ->
+        nil
     end
   end
 end
